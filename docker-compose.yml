@@ -1,0 +1,35 @@
+services:
+  n8n:
+    build: .                  
+    container_name: n8n_java_Sonar_container
+    ports:
+      - "443:443"
+    volumes:
+      - ./Data:/home/node/.n8n          # Monta el directorio Data local al directorio .n8n en el contenedor
+      - ./input-files:/home/node/input  # Monta el directorio input local al directorio input en el contenedor
+      - ./Data/lib:/home/node/lib 
+     
+    environment:
+      - N8N_HOST=                       # Introduce la url tipo https donde quiere que se levante el contenedor
+      - N8N_PROTOCOL=https
+      - N8N_PORT=443
+      - N8N_DISABLED_NODES= 
+      - N8N_USER_FOLDER=/home/node/.n8n
+      - N8N_DB_SQLITE_VOLUME_LOCATION=/home/node/.n8n/database.sqlite
+    depends_on:
+      - sonarqube
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube 
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+
