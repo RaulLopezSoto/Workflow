@@ -1,0 +1,2149 @@
+{
+  "name": "n8n-Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -3820,
+        2660
+      ],
+      "id": "d3142b7c-193a-4844-9504-b257919d186b",
+      "name": "Telegram Trigger",
+      "webhookId": "9b4c0d14-f4f5-422f-acf1-f7f47f7b2223",
+      "credentials": {
+        "telegramApi": {
+          "id": "ahazQtqke5mrf2RV",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n\"Authorization\": \"Bearer<Inserte la clave de OpenAI>\", \n    \"Content-Type\": \"multipart/form-data\"\n}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "=data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2880,
+        2660
+      ],
+      "id": "b5e6b690-6923-4f5c-bb6d-9f972b40ea0d",
+      "name": "Request Whisper"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/file/bot<Inserte el token de su bot>/{{ $json.result.file_path }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3120,
+        2660
+      ],
+      "id": "a30b9a3b-47bf-416c-845a-bce83da7a58e",
+      "name": "Download Audio"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Telegram Trigger').first().json.message.voice.file_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -3320,
+        2660
+      ],
+      "id": "e9a25663-3c97-40d2-86b6-2cd00179dbc7",
+      "name": "Get file",
+      "webhookId": "4c169a34-bae5-4abc-b1dd-275eeeafed65",
+      "credentials": {
+        "telegramApi": {
+          "id": "ahazQtqke5mrf2RV",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0b9bf23f-d038-4aaf-99ae-3842874e42e0",
+              "leftValue": "={{ $json.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3580,
+        2660
+      ],
+      "id": "ebb0cd8d-2d39-4d95-b36d-51c027105c42",
+      "name": "Is Audio"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = \"¡Modo de Uso!\\nEnvíe una nota de voz con el código deseado, el bot le responderá con su código, un conjunto de pruebas y un informe de la calidad\"\n\n\nreturn {\n  json: {\n    response: response\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3780,
+        2900
+      ],
+      "id": "b8dc7fa7-3e97-4758-a397-c50b4a02cfb6",
+      "name": "Bad Response"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.from.id }}",
+        "text": "={{ $json.response }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -3540,
+        2900
+      ],
+      "id": "8ab9cab1-6218-4a51-9d5d-ef235d86d733",
+      "name": "Bad Respond",
+      "webhookId": "f8fa289f-cf2b-4bc0-83d1-660121f676a5",
+      "credentials": {
+        "telegramApi": {
+          "id": "ahazQtqke5mrf2RV",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Authorization\": \"Bearer <Inserte la clave de OpenRouter>\",\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "=\n{\n  \"model\": \"google/gemini-2.5-flash-preview\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Respondeme sin usar formato Markdown. Y tan solo con el código sin ningún texto adicciónal. Esta llamada forma parte de un flujo de llamadas a modelos por lo que necesito que me generes directamente toda la clase pública con nombre Main. No incluyas el método main en la clase. Solo define la clase y sus métodos.Introduce solo las cabeceras de imports necesarios para la ejecución de los métodos.Bajo ningún concepto introduzcas cabeceras tipo package.Es MUY IMPORTANTE que solo respondas con el código q se te pide. Este es el código que necesito que me hagas en Java: {{ $json.text }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2660,
+        2660
+      ],
+      "id": "469f963c-2b7c-48ba-992b-a74e77043428",
+      "name": "Code Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.choices[0].message.content || '';\n\nconst cleaned = input.replace(/```java\\s*([\\s\\S]*?)/gi, '$1');\nconst cleaned2= cleaned.replace(/\\s*([\\s\\S]*?)```/gi, '$1');\n\nconst cleaned3= cleaned2.replace(/\\bprivate\\b/g, 'public');\n\nconst totalclean = cleaned3.replace(/public static void main[\\s\\S]+?\\}\\s*\\}/, '}');\n\n\nreturn {\n  json: {\n    code: totalclean\n\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2440,
+        2660
+      ],
+      "id": "b6c8d8be-9322-4d6a-bbbd-1db9187519ec",
+      "name": "Correction 1"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nconst escapeForJsonRequest = (text) => {\n  return text\n    .replace(/\\\\/g, '\\\\\\\\')  // Escapar \\ → \\\\\n    .replace(/\"/g, '\\\\\"')     // Escapar \" → \\\"\n    .replace(/\\n/g, '\\\\n')    // Escapar \\n → \\\\n\n    .replace(/\\t/g, '\\\\t')    // Escapar \\t → \\\\t\n    .replace(/\\r/g, '\\\\r');   // Escapar \\r → \\\\r\n};\n  \nconst code = $('Correction 1').first().json.Code \nconst test = $input.first().json.choices[0].message.content\n\n// Construye el mensaje \nconst message = escapeForJsonRequest(`Solo responde en formato JSON. No añadas explicaciones, comentarios ni texto fuera del objeto JSON.\n\nDado el siguiente código y un conjunto de pruebas en formato JSON, realiza lo siguiente:\n\n1. Analiza el código y detecta casos límite o extremos que no estén cubiertos por las pruebas actuales.\n2. Añade esos casos al conjunto de pruebas.\n3. Revisa las pruebas existentes. Si alguna está mal (por ejemplo, valores incorrectos, entradas no válidas, salidas mal definidas), corrígela.\n4. Si alguna prueba involucra números con decimales, asegúrate de que la comprobación incluya una aproximación razonable\nAqui tienes el código: \\n${code}\\n\nAqui tienes el conjunto de datos de pruebas: \\n ${test}\\n`);\n\n// Prepara el payload para el HTTP Request\nconst payload = {\n  model: \"anthropic/claude-3.7-sonnet\",\n  messages: [{\n    role: \"user\",\n    content: message  // Contenido ya escapado\n  }]\n};\n\n// Devuelve el JSON como texto\nreturn [{ json: payload }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1580,
+        2460
+      ],
+      "id": "d93bfbeb-d64d-4ed7-915a-6ca82e1d8673",
+      "name": "Prepare Payload 2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Authorization\": \"Bearer <Inserte la clave de OpenRouter>\",\n  \"Content-Type\": \"application/json\"\n  \n}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $('Prepare Payload 2').item.json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1340,
+        2460
+      ],
+      "id": "309fb4c0-e5ef-45e7-978a-ff01f7382ed6",
+      "name": "Limit Cases Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nconst escapeForJsonRequest = (text) => {\n  return text\n    .replace(/\\\\/g, '\\\\\\\\')  // Escapar \\ → \\\\\n    .replace(/\"/g, '\\\\\"')     // Escapar \" → \\\"\n    .replace(/\\n/g, '\\\\n')    // Escapar \\n → \\\\n\n    .replace(/\\t/g, '\\\\t')    // Escapar \\t → \\\\t\n    .replace(/\\r/g, '\\\\r');   // Escapar \\r → \\\\r\n};\n  \nconst code =  $input.first().json.Code  \n\n// Construye el mensaje \nconst message = escapeForJsonRequest(`Respondeme unicamente con el formato JSON, ningun texto adicional.\\nDame un conjuto de datos de prueba con sus entradas y salidas esperadas para probar todos los métodos en este codigo en todos los casos posibles, utiliza los nombres de las funciones y parametros exactamente como se muestran en el codigo: ${code} \\n`);\n\n// Prepara el payload para el HTTP Request\nconst payload = {\n  model: \"google/gemini-2.5-flash-preview:thinking\",\n  messages: [{\n    role: \"user\",\n    content: message  // Contenido ya escapado\n  }]\n};\n\n// Devuelve el JSON como texto\nreturn [{ json: payload }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2160,
+        2460
+      ],
+      "id": "1490df2f-0d46-4f17-b667-a8907fb290bd",
+      "name": "Prepare Payload "
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Authorization\": \"Bearer <Inserte la clave de OpenRouter>\",\n  \"Content-Type\": \"application/json\"\n  \n}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $('Prepare Payload ').item.json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1840,
+        2460
+      ],
+      "id": "3737fc4b-ab9e-41cc-b829-8123c170927d",
+      "name": "Data Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7e5419b2-7a19-49ef-b1ef-0a88854429b2",
+              "name": "Code",
+              "value": "={{ $json.code }}",
+              "type": "string"
+            },
+            {
+              "id": "63ed8438-be08-4243-927d-69909063290c",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2180,
+        2860
+      ],
+      "id": "aaaa8467-1368-4a7e-b679-62d1f65ea942",
+      "name": "Save Code"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d3428044-f57c-4297-916b-412dfb62e33d",
+              "name": "Tests",
+              "value": "={{ $json.choices[0].message.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1080,
+        2460
+      ],
+      "id": "cffd6aed-e6ad-414f-9fd1-9bfcfb05b597",
+      "name": "Save Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst code =\"package main;\\n\" + $input.first().json.Code  ;\nreturn [\n  {\n    json: {\n      generatedCode: code\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1940,
+        2860
+      ],
+      "id": "cbbc447e-03a2-4535-9d47-224b34860348",
+      "name": "Package Header"
+    },
+    {
+      "parameters": {
+        "command": "=echo ' {{ $json.generatedCode }} ' >/home/node/.n8n/main/Main.java"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -1720,
+        2860
+      ],
+      "id": "8c201f83-092b-4cd8-a201-f7b2a64cd113",
+      "name": "Code to File"
+    },
+    {
+      "parameters": {
+        "command": "=cat /home/node/.n8n/main/Main.java\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -1500,
+        2860
+      ],
+      "id": "e472ae92-a12d-447d-81af-1be508e867be",
+      "name": "New Code"
+    },
+    {
+      "parameters": {
+        "command": "javac /home/node/.n8n/main/Main.java"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        2860
+      ],
+      "id": "f28027b0-d120-40a7-b086-e7241acff1c4",
+      "name": "Code Compilation",
+      "alwaysOutputData": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst escapeForJsonRequest = (text) => {\n  return text\n    .replace(/\\\\/g, '\\\\\\\\')  // Escapar \\ → \\\\\n    .replace(/\"/g, '\\\\\"')     // Escapar \" → \\\"\n    .replace(/\\n/g, '\\\\n')    // Escapar \\n → \\\\n\n    .replace(/\\t/g, '\\\\t')    // Escapar \\t → \\\\t\n    .replace(/\\r/g, '\\\\r');   // Escapar \\r → \\\\r\n};\n\n// Obtén el código dinámico (ej: de otro nodo o input)\nconst error = $input.first().json.error;  \nconst code =  $('New Code').first().json.stdout;\nconst audio = $('Request Whisper').first().json.text;\n\n// Construye el mensaje escapando los caracteres problemáticos\nconst message = escapeForJsonRequest(`Respondeme sin usar formato Markdown. Y tan solo con el código sin ningún texto adicciónal. Además necesito que me lo metas en una clase main para poder compilarlo y ejecutarlo sin cambiar nada\\n Tengo este código: ${code} \\n Y me salen estos errores de compilación: ${error} \\n Necesito que me lo ajustees para solucionar estos errores pero siguiendo las indicaciones que te he dado al inicio y sabiendo que esto es lo que quiero que haga: ${audio}`);\n\n// Prepara el payload para el HTTP Request\nconst payload = {\n  model: \"meta-llama/llama-4-maverick\",\n  messages: [{\n    role: \"user\",\n    content: message  // Contenido ya escapado\n  }]\n};\n\n// Devuelve el JSON *como texto* (no como objeto)\nreturn [{ json: payload }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1240,
+        3040
+      ],
+      "id": "594be3f4-2b74-413d-8d2c-99773ede6e55",
+      "name": "Prepare Payload 3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Authorization\": \"Bearer <Inserte la clave de OpenRouter>\",\n  \"Content-Type\": \"application/json\",\n  \"HTTP-Referer\": \"https://934c-176-63-232-130.ngrok-free.app \"\n}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $('Prepare Payload 3').item.json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1220,
+        3220
+      ],
+      "id": "4dc23aef-5c0d-4116-9aef-602c27943cb3",
+      "name": "Code Request 2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.choices[0].message.content || '';\n\nconst cleaned = input.replace(/```java\\s*([\\s\\S]*?)/gi, '$1');\nconst cleaned2= cleaned.replace(/\\s*([\\s\\S]*?)```/gi, '$1');\n\nconst cleaned3= cleaned2.replace(/\\bprivate\\b/g, 'public');\n\nconst totalclean = cleaned3.replace(/public static void main[\\s\\S]+?\\}\\s*\\}/, '}');\n\n\nreturn {\n  json: {\n    code: totalclean\n\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        3440
+      ],
+      "id": "7a9c1dd2-057b-4608-ad47-30e4f0cf9cca",
+      "name": "Correction 2"
+    },
+    {
+      "parameters": {
+        "command": "=echo '{{ $json.code }}' >/home/node/.n8n/main/Main.java"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        3660
+      ],
+      "id": "66e6bc95-4510-4f53-9684-8d64ce5b1bbf",
+      "name": "Code to File 2"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst escapeForJsonRequest = (text) => {\n  return text\n    .replace(/\\\\/g, '\\\\\\\\')  // Escapar \\ → \\\\\n    .replace(/\"/g, '\\\\\"')     // Escapar \" → \\\"\n    .replace(/\\n/g, '\\\\n')    // Escapar \\n → \\\\n\n    .replace(/\\t/g, '\\\\t')    // Escapar \\t → \\\\t\n    .replace(/\\r/g, '\\\\r');   // Escapar \\r → \\\\r\n};\n\n// Obtén el código dinámico (ej: de otro nodo o input)\nconst tests = $('Save Data').first().json.test;  \nconst code =  $('New Code').first().json.stdout;   \n\n// Construye el mensaje escapando los caracteres problemáticos\nconst message = escapeForJsonRequest(`Respondeme sin usar formato Markdown. Y tan solo con el código sin ningún texto adiccional ni cabeceras de la clase ni nada extra, necesito coger el cógigo y poder pegarlo directamente en mi clase de test \\n Tengo este código : ${code}  \\n Y este conjunto de pruebas : ${tests} \\n\n Necesito que me generes las pruebas unitarias de todos los conjuntos de pruebas que te he pasado sabiendo que esta es la cabecera de la clase: package test;\nimport org.junit.Test; \nimport static org.junit.Assert.*; \nimport main.Main;\n public class MainTest \\n IMPORTANTE sique las indicaciones del inicio y SOLO me devuelvas las pruebas unitarias, ninguna cabecera de la clase ni los imports. Además de que tienes que adaptarte a las cabeceras para que no haya ningún error de imports`);\n\n// Prepara el payload para el HTTP Request\nconst payload = {\n  model: \"meta-llama/llama-4-maverick\",\n  messages: [{\n    role: \"user\",\n    content: message  // Contenido ya escapado\n  }]\n};\n\n// Devuelve el JSON *como texto* (no como objeto)\nreturn [{ json: payload }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -940,
+        2840
+      ],
+      "id": "bffd0afd-8802-4858-b0b2-be4a680b8062",
+      "name": "Prepare Payload 4"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.choices[0].message.content|| '';\n\nconst cleaned = input.replace(/```java\\s*([\\s\\S]*?)/gi, '$1');\nconst cleaned2= cleaned.replace(/\\s*([\\s\\S]*?)```/gi, '$1');\n\nreturn {\n  json: {\n    code: cleaned2\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        2840
+      ],
+      "id": "dea548ff-07f4-418c-a165-3c84ceec7442",
+      "name": "Correction 3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Authorization\": \"Bearer <Inserte la clave de OpenRouter>\",\n  \"Content-Type\": \"application/json\",\n  \"HTTP-Referer\": \"https://934c-176-63-232-130.ngrok-free.app \"\n}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $('Prepare Payload 4').item.json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -680,
+        2840
+      ],
+      "id": "b4c191f4-6014-4b5c-9650-ba42189260cd",
+      "name": "Test Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7e5419b2-7a19-49ef-b1ef-0a88854429b2",
+              "name": "Test",
+              "value": "={{ $json.generatedCode }}",
+              "type": "string"
+            },
+            {
+              "id": "63ed8438-be08-4243-927d-69909063290c",
+              "name": "Restart",
+              "value": 0,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        200,
+        2840
+      ],
+      "id": "077d6960-ad9f-4df1-b491-fc5d94d74735",
+      "name": "Save Test"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst Tests = 'package test;\\nimport org.junit.Test; \\n import static org.junit.Assert.*; \\nimport main.Main;\\n public class MainTest { \\n'  + $input.first().json.code + \"\\n}\";\nreturn [\n  {\n    json: {\n      generatedCode: Tests\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -60,
+        2840
+      ],
+      "id": "bd3f9850-9a4d-4247-adc4-5d74af09cc13",
+      "name": "Insert Headers"
+    },
+    {
+      "parameters": {
+        "command": "=echo ' {{ $json.Test }} ' >/home/node/.n8n/test/MainTest.java\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        540,
+        2840
+      ],
+      "id": "6c3840ad-dbb7-4ea1-a5db-fb458e35856f",
+      "name": "Test to File"
+    },
+    {
+      "parameters": {
+        "command": "rm /home/node/.n8n/*.txt 2>/dev/null"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        2840
+      ],
+      "id": "e2556691-d87c-489f-9208-971da9c42f58",
+      "name": "Reset Counter",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "command": "=cat /home/node/.n8n/test/MainTest.java \n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1620,
+        2840
+      ],
+      "id": "8e0615f2-f98e-4c39-9b2b-a516bcf33441",
+      "name": "New Test"
+    },
+    {
+      "parameters": {
+        "command": "javac -cp \".:/home/node/lib/*:/home/node/.n8n\" /home/node/.n8n/test/MainTest.java \n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1940,
+        2840
+      ],
+      "id": "414de43d-70d9-4d98-a51c-698602f455e6",
+      "name": "Compile Test",
+      "alwaysOutputData": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "command": "cat home/node/.n8n/contador1.txt"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2340,
+        3260
+      ],
+      "id": "46536462-0902-4064-aff3-f28bbc79f021",
+      "name": "Exist txt",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "command": "echo '1'>home/node/.n8n/contador1.txt"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2660,
+        3380
+      ],
+      "id": "a9d0847f-2ea6-46b7-8a9c-7664eec3006a",
+      "name": "Create txt"
+    },
+    {
+      "parameters": {
+        "command": "echo \"2\" >home/node/.n8n/contador1.txt"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2660,
+        3580
+      ],
+      "id": "b28d62c5-bb81-4f1d-a67c-677f04975969",
+      "name": "Sum txt"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d42d5b7c-ee73-4e9e-af3a-78d5bf1a751e",
+              "leftValue": "={{ $json.stdout }}\n",
+              "rightValue": "2",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2340,
+        3500
+      ],
+      "id": "5e3c3198-26b7-45df-aa67-5c61054e88a1",
+      "name": "txt is 2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.choices[0].message.content|| '';\n\nconst cleaned = input.replace(/```java\\s*([\\s\\S]*?)/gi, '$1');\nconst cleaned2= cleaned.replace(/\\s*([\\s\\S]*?)```/gi, '$1');\n\nconst cleaned3= cleaned2.replace(/\\bprivate\\b/g, 'public');\n\nconst totalclean = cleaned3.replace(/public static void main[\\s\\S]+?\\}\\s*\\}/, '}');\n\nreturn {\n  json: {\n    code: totalclean\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3640,
+        3960
+      ],
+      "id": "021194c3-48e7-414f-a38d-047ec2734006",
+      "name": "Correction 4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Authorization\": \"Bearer <Inserte la clave de OpenRouter>\",\n  \"Content-Type\": \"application/json\",\n  \"HTTP-Referer\": \"https://934c-176-63-232-130.ngrok-free.app \"\n}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3620,
+        3720
+      ],
+      "id": "d51f456f-cd34-4636-a103-1b6385e0abbd",
+      "name": "Correction Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cb8c40d7-635c-4fde-ab3a-10fd70e1c59a",
+              "leftValue": "={{ $json.code }}",
+              "rightValue": "MainTest",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3660,
+        4160
+      ],
+      "id": "86e8f86d-df25-4738-960e-c454f3cb5508",
+      "name": "Response Analysis"
+    },
+    {
+      "parameters": {
+        "command": "=echo ' {{ $('Correction 4').item.json.code }} ' >/home/node/.n8n/test/MainTest.java"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3140,
+        4120
+      ],
+      "id": "ebbf4bca-4678-4bbc-b5c3-d6786ff03b21",
+      "name": "Test to File1"
+    },
+    {
+      "parameters": {
+        "command": "=echo '{{ $('Correction 4').item.json.code }}' >/home/node/.n8n/main/Main.java"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3780,
+        4420
+      ],
+      "id": "04749eda-b35a-4e20-a5f2-00b9d244af6e",
+      "name": "Code to File 3"
+    },
+    {
+      "parameters": {
+        "command": "javac /home/node/.n8n/Main/main.java"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        240,
+        3120
+      ],
+      "id": "cf9b7865-3ae2-434f-91fb-c4de83bc23e0",
+      "name": "Code Compilation 2",
+      "alwaysOutputData": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst escapeForJsonRequest = (text) => {\n  return text\n    .replace(/\\\\/g, '\\\\\\\\')  // Escapar \\ → \\\\\n    .replace(/\"/g, '\\\\\"')     // Escapar \" → \\\"\n    .replace(/\\n/g, '\\\\n')    // Escapar \\n → \\\\n\n    .replace(/\\t/g, '\\\\t')    // Escapar \\t → \\\\t\n    .replace(/\\r/g, '\\\\r');   // Escapar \\r → \\\\r\n};\n\n// Obtén el código dinámico (ej: de otro nodo o input)\nconst error = $input.first().json.error;  \nconst code =  $('New Code 3').first().json.stdout;\nconst audio = $('Request Whisper').first().json.text;\n\n// Construye el mensaje escapando los caracteres problemáticos\nconst message = escapeForJsonRequest(`Respondeme sin usar formato Markdown. Y tan solo con el código sin ningún texto adicciónal. Además necesito que me lo metas en una clase main para poder compilarlo y ejecutarlo sin cambiar nada\\n Tengo este código : ${code} \\n Y me salen estos errores de compilación : ${error} \\n Necesito que me lo ajustees para solucionar estos errores pero siguiendo las indicaciones que te he dado al inicio y sabiendo que esto es lo que quiero que haga: ${audio}`);\n\n// Prepara el payload para el HTTP Request\nconst payload = {\n  model: \"meta-llama/llama-4-maverick\",\n  messages: [{\n    role: \"user\",\n    content: message  // Contenido ya escapado\n  }]\n};\n\n// Devuelve el JSON *como texto* (no como objeto)\nreturn [{ json: payload }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        3320
+      ],
+      "id": "fdc78f04-4031-451a-a9a3-863a3a171179",
+      "name": "Prepare Payload 6"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.choices[0].message.content || '';\n\nconst cleaned = input.replace(/```java\\s*([\\s\\S]*?)/gi, '$1');\nconst cleaned2= cleaned.replace(/\\s*([\\s\\S]*?)```/gi, '$1');\n\nconst cleaned3= cleaned2.replace(/\\bprivate\\b/g, 'public');\n\nconst totalclean = cleaned3.replace(/public static void main[\\s\\S]+?\\}\\s*\\}/, '}');\n\nreturn {\n  json: {\n    code: totalclean\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        3720
+      ],
+      "id": "4ac256f0-e406-4637-941f-f8153e3878e9",
+      "name": "Correction 5"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Authorization\": \"Bearer <Inserte la clave de OpenRouter>\",\n  \"Content-Type\": \"application/json\",\n  \"HTTP-Referer\": \"https://934c-176-63-232-130.ngrok-free.app \"\n}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $('Prepare Payload 6').item.json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        3500
+      ],
+      "id": "1d2a07c1-7903-4d9b-9ccd-a58231d36577",
+      "name": "Code Request 3"
+    },
+    {
+      "parameters": {
+        "command": "=echo '{{ $json.code }}' >/home/node/.n8n/main/Main.java"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        300,
+        3940
+      ],
+      "id": "38158c4b-0742-4962-8ea8-9a3daadcacf2",
+      "name": "Code to File 4"
+    },
+    {
+      "parameters": {
+        "command": "=cat /home/node/.n8n/main/Main.java\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        0,
+        3120
+      ],
+      "id": "6992038c-d44c-43b1-b9b1-825382c7b6ab",
+      "name": "New Code 3"
+    },
+    {
+      "parameters": {
+        "command": "=cat /home/node/.n8n/main/Main.java\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        2840
+      ],
+      "id": "db344e5b-6bc8-4347-93fb-9960b0512117",
+      "name": "New Code 2"
+    },
+    {
+      "parameters": {
+        "command": "echo 'Execution' > home/node/.n8n/execution.txt"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2380,
+        2820
+      ],
+      "id": "4d7af7df-6511-4370-806c-80e6f3ade3b3",
+      "name": "Create exe.txt"
+    },
+    {
+      "parameters": {
+        "command": "=  java -javaagent:/home/node/lib/jacocoagent.jar=destfile=/home/node/.n8n/jacoco.exec \\\n     -cp \".:/home/node/.n8n:/home/node/lib/*\" \\\n     org.junit.runner.JUnitCore test.MainTest\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        2820
+      ],
+      "id": "6843f3f5-ffd4-4dee-99b3-e4b3508cb98b",
+      "name": "Execute Test",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst escapeForJsonRequest = (text) => {\n  return text\n    .replace(/\\\\/g, '\\\\\\\\')  // Escapar \\ → \\\\\n    .replace(/\"/g, '\\\\\"')     // Escapar \" → \\\"\n    .replace(/\\n/g, '\\\\n')    // Escapar \\n → \\\\n\n    .replace(/\\t/g, '\\\\t')    // Escapar \\t → \\\\t\n    .replace(/\\r/g, '\\\\r');   // Escapar \\r → \\\\r\n};\n\n// Obtén el código dinámico (ej: de otro nodo o input)\n\nconst test =  $('New Test').first().json.stdout\nconst code = $('New Code 2').first().json.stdout\nconst error = $('Save Exe Error Error').first().json.Error\n\nconst message = escapeForJsonRequest(`Instrucciones estrictas:\n1. Respuesta debe ser SOLO código, sin explicaciones ni formato Markdown.\n2. No incluyas ningún texto adicional.\n3. Corrige solo UNA clase (Main o MainTest) según el error.\n\nContexto: El error aparece durante la ejecución de la clase MainTest. Pero quiero que analices ambas junto con el error para ver si el problema está  la clase Main o en la clase MainTest\n\n- Clase Main actual: \n${code}\n\n- Clase MainTest actual: \n${test}\n\n- Errores de Ejecición: \n${error}\n \nDevuelve únicamente el código corregido de la clase afectada.`);\n\n// Prepara el payload para el HTTP Request\nconst payload = {\n  model: \"meta-llama/llama-4-maverick\",\n  messages: [{\n    role: \"user\",\n    content: message\n    \n  \n    \n  }]\n};\n\n// Devuelve el JSON *como texto* (no como objeto)\nreturn [{ json: payload }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3380,
+        3500
+      ],
+      "id": "e41fd03e-3692-4c9d-a1d2-a0cee635768b",
+      "name": "Prepare Payload 5.2"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst escapeForJsonRequest = (text) => {\n  return text\n    .replace(/\\\\/g, '\\\\\\\\')  // Escapar \\ → \\\\\n    .replace(/\"/g, '\\\\\"')     // Escapar \" → \\\"\n    .replace(/\\n/g, '\\\\n')    // Escapar \\n → \\\\n\n    .replace(/\\t/g, '\\\\t')    // Escapar \\t → \\\\t\n    .replace(/\\r/g, '\\\\r');   // Escapar \\r → \\\\r\n};\n\n// Obtén el código dinámico (ej: de otro nodo o input)\n\nconst test =  $('New Test').first().json.stdout\nconst code = $('New Code 2').first().json.stdout\nconst error = $('Save Comp Error').first().json.Error\n\nconst message = escapeForJsonRequest(`Instrucciones estrictas:\n1. Respuesta debe ser SOLO código, sin explicaciones ni formato Markdown.\n2. No incluyas ningún texto adicional.\n3. Corrige solo UNA clase (Main o MainTest) según el error.\n\nContexto: El error aparece en durante la compilación de la clase MainTest. Pero quiero que analices ambas junto con el error para ver si el problema está en la clase Main o en la clase MainTest\n\n- Clase Main actual: \n${code}\n\n- Clase MainTest actual: \n${test}\n\n- Errores de Compilación: \n${error}\n \nDevuelve únicamente el código corregido de la clase afectada.`);\n\n// Prepara el payload para el HTTP Request\nconst payload = {\n  model: \"meta-llama/llama-4-maverick\",\n  messages: [{\n    role: \"user\",\n    content: message\n    \n  \n    \n  }]\n};\n\n// Devuelve el JSON *como texto* (no como objeto)\nreturn [{ json: payload }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3180,
+        3680
+      ],
+      "id": "d353869b-8150-46b6-a53d-03365c601e5a",
+      "name": "Prepare Payload 5.1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9306d0dc-2f7a-47f9-b530-553660ffcd9a",
+              "name": "error",
+              "value": "={{ $json.error }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2800,
+        3040
+      ],
+      "id": "284339cf-2e44-41cc-88c2-dc6e8ac79559",
+      "name": "Save Exe Error"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7e5419b2-7a19-49ef-b1ef-0a88854429b2",
+              "name": "Error",
+              "value": "={{ $json.error }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2140,
+        3020
+      ],
+      "id": "f3a479f2-04e2-41bd-895e-919995bbcfae",
+      "name": "Save Comp Error"
+    },
+    {
+      "parameters": {
+        "command": "cat home/node/.n8n/execution.txt"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2920,
+        3480
+      ],
+      "id": "08111ae2-ca3a-4680-9105-0c508244ebc5",
+      "name": "Exist exe.txt",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "command": "cat home/node/.n8n/sonar-project.properties"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3140,
+        2800
+      ],
+      "id": "67f5b08a-72cd-45bb-a355-b8fc91a2a398",
+      "name": "Show Properties"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Show Properties').first().json.stdout;  // El contenido original de tu archivo de propiedades\nconst date = new Date().toISOString().replace(/[:.-]/g, '').slice(0, 15); // fecha única simplificada\nconst newKey = `sonar.projectKey=ProyectoTFG${date}`;\n\nconst properties = input.replace(/sonar\\.projectKey=.*$/gm, newKey);\n\nreturn {\n  json: {\n    code: properties,\n    date: date\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        2800
+      ],
+      "id": "3750df62-579f-4337-a01e-d30e2ce1da34",
+      "name": "New ProjectKey"
+    },
+    {
+      "parameters": {
+        "command": "sonar-scanner -Dproject.settings=/home/node/.n8n/sonar-project.properties"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        4360,
+        2800
+      ],
+      "id": "b1ed0110-f0cc-423a-9a2d-cb5574d39f8c",
+      "name": "Sonar Scanner"
+    },
+    {
+      "parameters": {
+        "command": "=echo ' {{ $json.code }} '>/home/node/.n8n/sonar-project.properties "
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3720,
+        2800
+      ],
+      "id": "278a361a-e179-4a97-a34b-e781503c99ad",
+      "name": "Save Properties"
+    },
+    {
+      "parameters": {
+        "command": "java -jar /home/node/lib/jacococli.jar report /home/node/.n8n/jacoco.exec \\\n  --classfiles /home/node/.n8n/main \\\n  --classfiles /home/node/.n8n/test \\\n  --sourcefiles /home/node/.n8n/main \\\n  --sourcefiles /home/node/.n8n/test \\\n  --xml /home/node/.n8n/jacoco-report.xml\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        4040,
+        2800
+      ],
+      "id": "21416a85-3472-4729-bbf2-3aed2fe58044",
+      "name": "Create XML"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4740,
+        2800
+      ],
+      "id": "836d7fc6-61cd-4d5f-a517-05569aee8a0e",
+      "name": "Wait Response",
+      "webhookId": "c13b8b43-42f7-4c08-b0f4-dbdf065f749b"
+    },
+    {
+      "parameters": {
+        "url": "=http://sonarqube:9000/api/measures/component?component=ProyectoTFG{{ $('New ProjectKey').item.json.date }}&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,ncloc,alert_status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer <Inserte la clave de SonarQube>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5040,
+        2800
+      ],
+      "id": "2975b8b1-8795-474c-b0ad-7d0b200e02fe",
+      "name": "Sonar Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "df39e34e-1e27-4fba-a21e-10988eebd04a",
+              "leftValue": "={{ $('Sonar Request').item.json.component.measures }}",
+              "rightValue": "TRK",
+              "operator": {
+                "type": "array",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5700,
+        2800
+      ],
+      "id": "b369afa5-2271-49bb-9cee-293aaa233981",
+      "name": "Responded"
+    },
+    {
+      "parameters": {
+        "jsCode": "const measures = $('Sonar Request').first().json.component.measures;\nconst issues =$('Sonar Issues Request').first().json.issues ?? {};\nlet issuesResponse\nif(Object.keys(issues).length === 0)\n{\n  issuesResponse={};\n}else{\n issuesResponse = issues.map(issue => ({\n  severity: issue.severity,\n  type: issue.type,\n  component: issue.component.split(':').pop().split('/').pop(),\n  line: issue.line,\n  message: issue.message,\n \n}));\n}\nreturn {\n  quality_gate: {\n    status: measures.find(m => m.metric=== 'alert_status')?.value,\n    bugs: measures.find(m => m.metric=== 'bugs')?.value,\n    smells: measures.find(m => m.metric === 'code_smells')?.value,\n    vulnerabilities: measures.find(m => m.metric=== 'vulnerabilities')?.value,\n    coverage: measures.find(m => m.metric === 'coverage')?.value || \"N/A\",\n    duplicated_lines: measures.find(m => m.metric === 'duplicated_lines_density')?.value + \"%\" || \"0%\"\n  },\n  issues:issuesResponse\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6000,
+        2820
+      ],
+      "id": "5299771d-8956-4aaf-b22e-4fbed579c2f5",
+      "name": "Inform Correction"
+    },
+    {
+      "parameters": {
+        "jsCode": "const Code = $('New Code 2').first().json.stdout\nconst Test =$('New Test').first().json.stdout\nconst Inform = JSON.stringify($input.first().json.quality_gate , null, 2);\nconst issuesJson = $input.first().json.issues ?? {};\nlet issuesText;\nif (Object.keys(issuesJson).length === 0) {\n  issuesText = '';\n} else {\n  issuesText = '⚠️ Alertas del Informe:*\\n```json\\n' + JSON.stringify(issuesJson, null, 2) + '\\n```';\n}\n\nreturn [{\n  json: {\n    codeMessage: `💻 Código requerido:\\n\\`\\`\\`java\\n${Code}\\n\\`\\`\\``,\n    testMessage: `🧪 Test del código:\\n\\`\\`\\`java\\n${Test}\\n\\`\\`\\``,\n    informMessage: `🧾 Informe de calidad:\\n\\`\\`\\`json\\n${Inform}\\n\\`\\`\\``,\n    issuesMessage: issuesText\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6240,
+        2820
+      ],
+      "id": "ae063ed7-d69d-4b83-9fed-e0519e7c9759",
+      "name": "Insert Markdown"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.from.id }}",
+        "text": "=\n{{ $('Insert Markdown').first().json.codeMessage}}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "MarkdownV2"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        6460,
+        2820
+      ],
+      "id": "40583810-2c4b-449b-88ae-1d4f91eea2b4",
+      "name": "Code Response",
+      "webhookId": "f8fa289f-cf2b-4bc0-83d1-660121f676a5",
+      "credentials": {
+        "telegramApi": {
+          "id": "ahazQtqke5mrf2RV",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.from.id }}",
+        "text": "={{ $('Insert Markdown').first().json.testMessage }}\n",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "MarkdownV2"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        6740,
+        2820
+      ],
+      "id": "866637ef-8d21-4408-a101-8bfd9bb423f6",
+      "name": "Test Response",
+      "webhookId": "f8fa289f-cf2b-4bc0-83d1-660121f676a5",
+      "credentials": {
+        "telegramApi": {
+          "id": "ahazQtqke5mrf2RV",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.from.id }}",
+        "text": "={{ $('Insert Markdown').first().json.informMessage }}\n",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        7000,
+        2820
+      ],
+      "id": "e9da4f8c-261d-414d-b3c3-c65d35d75107",
+      "name": "Inform Response",
+      "webhookId": "f8fa289f-cf2b-4bc0-83d1-660121f676a5",
+      "credentials": {
+        "telegramApi": {
+          "id": "ahazQtqke5mrf2RV",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=http://sonarqube:9000/api/issues/search?componentKeys=ProyectoTFG{{ $('New ProjectKey').item.json.date }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer <Inserte la clave de SonarQube>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5340,
+        2800
+      ],
+      "id": "7515ed2f-fb25-4c63-9530-dbf90aa55d28",
+      "name": "Sonar Issues Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b4f02a35-cef0-4105-83a5-55ca916b2825",
+              "leftValue": "={{ $('Insert Markdown').first().json.issuesMessage }}",
+              "rightValue": "Alertas",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        7220,
+        2820
+      ],
+      "id": "dbfb389f-9856-4571-9623-50edb40308b0",
+      "name": "Has Issues"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.from.id }}",
+        "text": "={{ $('Insert Markdown').first().json.issuesMessage }}\n",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        7520,
+        2800
+      ],
+      "id": "e54d7b6a-612e-44f3-8d70-b1514b97b983",
+      "name": "Issues Response",
+      "webhookId": "f8fa289f-cf2b-4bc0-83d1-660121f676a5",
+      "credentials": {
+        "telegramApi": {
+          "id": "ahazQtqke5mrf2RV",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "rm home/node/.n8n/execution.txt"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3160,
+        3420
+      ],
+      "id": "32f6a319-3ebd-415a-a651-158470821c46",
+      "name": "Delete exe.txt"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Is Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request Whisper": {
+      "main": [
+        [
+          {
+            "node": "Code Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Audio": {
+      "main": [
+        [
+          {
+            "node": "Request Whisper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get file": {
+      "main": [
+        [
+          {
+            "node": "Download Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Audio": {
+      "main": [
+        [
+          {
+            "node": "Get file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bad Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bad Response": {
+      "main": [
+        [
+          {
+            "node": "Bad Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Request": {
+      "main": [
+        [
+          {
+            "node": "Correction 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correction 1": {
+      "main": [
+        [
+          {
+            "node": "Save Code",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Payload ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payload 2": {
+      "main": [
+        [
+          {
+            "node": "Limit Cases Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit Cases Request": {
+      "main": [
+        [
+          {
+            "node": "Save Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payload ": {
+      "main": [
+        [
+          {
+            "node": "Data Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Request": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payload 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Code": {
+      "main": [
+        [
+          {
+            "node": "Package Header",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Package Header": {
+      "main": [
+        [
+          {
+            "node": "Code to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code to File": {
+      "main": [
+        [
+          {
+            "node": "New Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Code": {
+      "main": [
+        [
+          {
+            "node": "Code Compilation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Compilation": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payload 4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Payload 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payload 3": {
+      "main": [
+        [
+          {
+            "node": "Code Request 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Request 2": {
+      "main": [
+        [
+          {
+            "node": "Correction 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correction 2": {
+      "main": [
+        [
+          {
+            "node": "Code to File 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code to File 2": {
+      "main": [
+        [
+          {
+            "node": "New Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payload 4": {
+      "main": [
+        [
+          {
+            "node": "Test Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correction 3": {
+      "main": [
+        [
+          {
+            "node": "Insert Headers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Request": {
+      "main": [
+        [
+          {
+            "node": "Correction 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Test": {
+      "main": [
+        [
+          {
+            "node": "Test to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Headers": {
+      "main": [
+        [
+          {
+            "node": "Save Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test to File": {
+      "main": [
+        [
+          {
+            "node": "Reset Counter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reset Counter": {
+      "main": [
+        [
+          {
+            "node": "New Code 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Test": {
+      "main": [
+        [
+          {
+            "node": "Compile Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Test": {
+      "main": [
+        [
+          {
+            "node": "Create exe.txt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Comp Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Exist txt": {
+      "main": [
+        [
+          {
+            "node": "txt is 2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create txt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create txt": {
+      "main": [
+        [
+          {
+            "node": "Exist exe.txt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sum txt": {
+      "main": [
+        [
+          {
+            "node": "Exist exe.txt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "txt is 2": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payload 4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sum txt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correction 4": {
+      "main": [
+        [
+          {
+            "node": "Response Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correction Request": {
+      "main": [
+        [
+          {
+            "node": "Correction 4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response Analysis": {
+      "main": [
+        [
+          {
+            "node": "Test to File1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code to File 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test to File1": {
+      "main": [
+        [
+          {
+            "node": "New Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code to File 3": {
+      "main": [
+        [
+          {
+            "node": "New Code 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Compilation 2": {
+      "main": [
+        [
+          {
+            "node": "Test to File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Payload 6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payload 6": {
+      "main": [
+        [
+          {
+            "node": "Code Request 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correction 5": {
+      "main": [
+        [
+          {
+            "node": "Code to File 4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Request 3": {
+      "main": [
+        [
+          {
+            "node": "Correction 5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code to File 4": {
+      "main": [
+        [
+          {
+            "node": "New Code 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Code 3": {
+      "main": [
+        [
+          {
+            "node": "Code Compilation 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Code 2": {
+      "main": [
+        [
+          {
+            "node": "New Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create exe.txt": {
+      "main": [
+        [
+          {
+            "node": "Execute Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Test": {
+      "main": [
+        [
+          {
+            "node": "Show Properties",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Exe Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payload 5.1": {
+      "main": [
+        [
+          {
+            "node": "Correction Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payload 5.2": {
+      "main": [
+        [
+          {
+            "node": "Correction Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Exe Error": {
+      "main": [
+        [
+          {
+            "node": "Exist txt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Comp Error": {
+      "main": [
+        [
+          {
+            "node": "Exist txt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Exist exe.txt": {
+      "main": [
+        [
+          {
+            "node": "Delete exe.txt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Payload 5.1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Show Properties": {
+      "main": [
+        [
+          {
+            "node": "New ProjectKey",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New ProjectKey": {
+      "main": [
+        [
+          {
+            "node": "Save Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonar Scanner": {
+      "main": [
+        [
+          {
+            "node": "Wait Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Properties": {
+      "main": [
+        [
+          {
+            "node": "Create XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create XML": {
+      "main": [
+        [
+          {
+            "node": "Sonar Scanner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Response": {
+      "main": [
+        [
+          {
+            "node": "Sonar Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonar Request": {
+      "main": [
+        [
+          {
+            "node": "Sonar Issues Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responded": {
+      "main": [
+        [
+          {
+            "node": "Wait Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Inform Correction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inform Correction": {
+      "main": [
+        [
+          {
+            "node": "Insert Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Markdown": {
+      "main": [
+        [
+          {
+            "node": "Code Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Response": {
+      "main": [
+        [
+          {
+            "node": "Test Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Response": {
+      "main": [
+        [
+          {
+            "node": "Inform Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inform Response": {
+      "main": [
+        [
+          {
+            "node": "Has Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonar Issues Request": {
+      "main": [
+        [
+          {
+            "node": "Responded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Issues": {
+      "main": [
+        [
+          {
+            "node": "Issues Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete exe.txt": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payload 5.2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "87d36d1b-f716-48e7-a58d-b3e0f7bad9e1",
+  "meta": {
+    "instanceId": "b2d3623c4464040ab1d2d0025ff31afda054b77e4a3f3e31565d9c6b6ddf58a2"
+  },
+  "id": "rmxq5c5hfOSOnRR7",
+  "tags": []
+}
